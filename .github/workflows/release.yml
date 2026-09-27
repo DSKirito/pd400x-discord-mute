@@ -1,0 +1,42 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Release tag
+        required: true
+        default: v1.0.0
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Pack source zip
+        run: |
+          mkdir -p dist
+          zip -j "dist/pd400x-discord-mute-${{ github.event.inputs.tag }}.zip" \
+            START.bat HidWatch.cs README.md LICENSE
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.event.inputs.tag }}
+          name: ${{ github.event.inputs.tag }}
+          draft: false
+          prerelease: false
+          files: dist/*.zip
+          body: |
+            Первый релиз: кнопка mute на Maono PD400X → Discord.
+
+            Скачай zip, распакуй, запусти `START.bat`.
+
+            Перед запуском:
+            1. В Discord назначь Mute на `Ctrl+Shift+Alt+M` и закрой страницу биндов.
+            2. Закрой Maono Link.
+            3. Размуть Discord вручную, потом нажми mute на микрофоне.
