@@ -1,8 +1,10 @@
 using System;
 using System.Collections.Generic;
+using System.Drawing;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
+using System.Windows.Forms;
 
 internal static class Program
 {
@@ -14,6 +16,7 @@ internal static class Program
     const uint FILE_SHARE_READ = 1, FILE_SHARE_WRITE = 2;
     const uint OPEN_EXISTING = 3;
     const uint FILE_FLAG_OVERLAPPED = 0x40000000;
+    const int SW_HIDE = 0;
 
     static readonly Guid GUID_DEVINTERFACE_HID = new Guid("4D1E55B2-F16F-11CF-88CB-001111000030");
 
@@ -52,10 +55,11 @@ internal static class Program
     [DllImport("kernel32.dll")] static extern IntPtr CreateEvent(IntPtr a, bool m, bool i, string n);
     [DllImport("kernel32.dll")] static extern uint WaitForSingleObject(IntPtr h, uint ms);
     [DllImport("kernel32.dll")] static extern bool CancelIo(IntPtr h);
-
+    [DllImport("kernel32.dll")] static extern IntPtr GetConsoleWindow();
     [DllImport("user32.dll", SetLastError = true)]
     static extern uint SendInput(uint n, INPUT[] p, int cb);
     [DllImport("user32.dll")] static extern uint MapVirtualKey(uint c, uint t);
+    [DllImport("user32.dll")] static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
 
     [StructLayout(LayoutKind.Sequential)]
     struct HATTR { public int Size; public ushort VID, PID, Ver; }
@@ -87,6 +91,12 @@ internal static class Program
         public ushort Vid, Pid;
         public int InLen, OutLen;
         public IntPtr Handle;
+    }
+
+    class Watcher
+    {
+        public HidDev Dev;
+        public bool Stop;
     }
 
     static string ReadZ(byte[] buf)
@@ -151,11 +161,7 @@ internal static class Program
         try { HidD_GetHidGuid(out g); }
         catch { g = GUID_DEVINTERFACE_HID; }
         IntPtr set = SetupDiGetClassDevs(ref g, IntPtr.Zero, IntPtr.Zero, DIGCF_PRESENT | DIGCF_DEVICEINTERFACE);
-        if (set == new IntPtr(-1))
-        {
-            Console.WriteLine("SetupDiGetClassDevs failed");
-            return list;
-        }
+        if (set == new IntPtr(-1)) return list;
         int seen = 0;
         try
         {
@@ -200,24 +206,14 @@ internal static class Program
                     {
                         HATTR a = new HATTR();
                         a.Size = Marshal.SizeOf(typeof(HATTR));
-                        if (HidD_GetAttributes(qh, ref a))
-                        {
-                            vid = a.VID; pid = a.PID;
-                        }
+                        if (HidD_GetAttributes(qh, ref a)) { vid = a.VID; pid = a.PID; }
                         byte[] ps = new byte[256];
                         if (HidD_GetProductString(qh, ps, ps.Length)) prod = ReadZ(ps);
                         CloseHandle(qh);
                     }
-                    bool pick = LooksMaono(vid, prod, path);
-                    Console.WriteLine(string.Format("{0} {1:X4}:{2:X4}  {3}  {4}",
-                        pick ? "*" : " ", vid, pid, string.IsNullOrEmpty(prod) ? "-" : prod, path.Length > 90 ? path.Substring(0, 90) : path));
-                    if (!pick) continue;
+                    if (!LooksMaono(vid, prod, path)) continue;
                     IntPtr h = OpenHid(path);
-                    if (h == IntPtr.Zero)
-                    {
-                        Console.WriteLine("  open failed");
-                        continue;
-                    }
+                    if (h == IntPtr.Zero) continue;
                     int inLen = 65, outLen = 65;
                     IntPtr prep;
                     if (HidD_GetPreparsedData(h, out prep) && prep != IntPtr.Zero)
@@ -236,16 +232,11 @@ internal static class Program
                         finally { Marshal.FreeHGlobal(caps); }
                         HidD_FreePreparsedData(prep);
                     }
-                    Console.WriteLine(string.Format("  caps in={0} out={1}", inLen, outLen));
                     CloseHandle(h);
                     h = CreateFile(path, GENERIC_READ | GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE, IntPtr.Zero, OPEN_EXISTING, FILE_FLAG_OVERLAPPED, IntPtr.Zero);
                     if (h == IntPtr.Zero || h == new IntPtr(-1))
                         h = CreateFile(path, GENERIC_READ | GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE, IntPtr.Zero, OPEN_EXISTING, 0, IntPtr.Zero);
-                    if (h == IntPtr.Zero || h == new IntPtr(-1))
-                    {
-                        Console.WriteLine("  reopen failed");
-                        continue;
-                    }
+                    if (h == IntPtr.Zero || h == new IntPtr(-1)) continue;
                     HidD_SetNumInputBuffers(h, 16);
                     list.Add(new HidDev { Path = path, Name = prod, Vid = vid, Pid = pid, InLen = inLen, OutLen = outLen, Handle = h });
                 }
@@ -253,7 +244,6 @@ internal static class Program
             }
         }
         finally { SetupDiDestroyDeviceInfoList(set); }
-        Console.WriteLine("HID interfaces scanned: " + seen);
         return list;
     }
 
@@ -300,7 +290,6 @@ internal static class Program
     {
         if (b == null || n < 12) return -1;
         int off = 0;
-        if (n > 1 && b[0] != 0xC4 && b[1] == 0xC4) off = 0;
         if (b[off + 1] != 0xC4 && !(off == 0 && b[0] == 0xC4))
         {
             if (n > 2 && b[1] == 0xC4) off = 0;
@@ -341,8 +330,6 @@ internal static class Program
         IntPtr h = w.Dev.Handle;
         int inLen = w.Dev.InLen > 0 ? w.Dev.InLen : 65;
         int outLen = w.Dev.OutLen > 0 ? w.Dev.OutLen : 65;
-        Console.WriteLine(string.Format("HID  VID={0:X4} PID={1:X4} in={2} out={3}  {4}", w.Dev.Vid, w.Dev.Pid, inLen, outLen, w.Dev.Name));
-
         byte[] boot = QueryMute(0x4B);
         OvXfer(h, true, boot, Math.Min(outLen, boot.Length), 40);
         int lastMute = -2;
@@ -350,65 +337,45 @@ internal static class Program
         while (!w.Stop)
         {
             loops++;
-            bool got = false;
-            int muteVal = -1;
             byte[] buf = new byte[Math.Max(inLen, 65)];
             int rn = OvXfer(h, false, buf, inLen, 15);
-            if (rn > 0)
-            {
-                int v = ParseMute(buf, rn);
-                if (v >= 0) { muteVal = v; got = true; }
-            }
+            int muteVal = -1;
+            if (rn > 0) muteVal = ParseMute(buf, rn);
             else if ((loops % 6) == 1)
             {
                 byte[] q = QueryMute(0x4B);
                 OvXfer(h, true, q, Math.Min(outLen, q.Length), 25);
             }
-
-            if (got)
+            if (muteVal < 0) continue;
+            if (lastMute == -2) lastMute = muteVal;
+            else if (muteVal != lastMute)
             {
-                bool muted = muteVal != 0;
-                if (lastMute == -2)
-                {
-                    lastMute = muteVal;
-                    Console.WriteLine(string.Format("start: {0}  val={1}", muted ? "MUTE" : "LIVE", muteVal));
-                }
-                else if (muteVal != lastMute)
-                {
-                    lastMute = muteVal;
-                    uint n = SendMuteHotkey();
-                    Console.WriteLine(string.Format("{0}  val={1}  sent={2}", muted ? "MUTE" : "LIVE", muteVal, n));
-                }
+                lastMute = muteVal;
+                SendMuteHotkey();
             }
-
-            if (loops == 1)
-                Console.WriteLine("listening...");
         }
     }
 
-    class Watcher
-    {
-        public HidDev Dev;
-        public bool Stop;
-    }
-
+    [STAThread]
     static int Main()
     {
-        Console.WriteLine("PD400X HID -> Discord  (Maono Link not required)");
-        Console.WriteLine("If Maono Link is running, close it so HID is free.");
-        Console.WriteLine("Discord keybind: Ctrl+Shift+Alt+M  (close Keybinds page)");
-        Console.WriteLine();
+        try
+        {
+            IntPtr hwnd = GetConsoleWindow();
+            if (hwnd != IntPtr.Zero) ShowWindow(hwnd, SW_HIDE);
+        }
+        catch { }
+
         List<HidDev> devs = EnumMaono();
         if (devs.Count == 0)
         {
-            Console.WriteLine("No Maono HID device found.");
-            Console.WriteLine("Plug the PD400X via USB and close Maono Link.");
-            Console.WriteLine("Press any key...");
-            try { Console.ReadKey(true); } catch { }
+            MessageBox.Show(
+                "PD400X не найден.\nПодключи микрофон по USB и закрой Maono Link.",
+                "PD400X → Discord",
+                MessageBoxButtons.OK,
+                MessageBoxIcon.Warning);
             return 1;
         }
-        Console.WriteLine("Found " + devs.Count + " HID interface(s). Waiting for mute tap...");
-        Console.WriteLine();
         foreach (HidDev d in devs)
         {
             Watcher w = new Watcher();
@@ -417,6 +384,17 @@ internal static class Program
             t.IsBackground = true;
             t.Start(w);
         }
-        while (true) Thread.Sleep(1000);
+
+        NotifyIcon tray = new NotifyIcon();
+        tray.Text = "PD400X → Discord mute";
+        tray.Icon = SystemIcons.Application;
+        tray.Visible = true;
+        ContextMenuStrip menu = new ContextMenuStrip();
+        menu.Items.Add("Выход", null, delegate { tray.Visible = false; Application.Exit(); });
+        tray.ContextMenuStrip = menu;
+        tray.ShowBalloonTip(2500, "PD400X → Discord", "Работает в трее. Правый клик → Выход.", ToolTipIcon.Info);
+        Application.Run();
+        tray.Visible = false;
+        return 0;
     }
 }
