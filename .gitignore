@@ -1,0 +1,8 @@
+HidWatch.exe
+*.exe
+*.pdb
+*.obj
+*.user
+.vs/
+bin/
+obj/
