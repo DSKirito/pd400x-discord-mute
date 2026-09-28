@@ -17,8 +17,6 @@ internal static class Program
     const uint OPEN_EXISTING = 3;
     const uint FILE_FLAG_OVERLAPPED = 0x40000000;
     const int SW_HIDE = 0;
-    const ushort PD400X_VID = 0x352F;
-    const ushort PD400X_PID = 0x0100;
 
     static readonly Guid GUID_DEVINTERFACE_HID = new Guid("4D1E55B2-F16F-11CF-88CB-001111000030");
 
@@ -107,11 +105,14 @@ internal static class Program
         catch { return ""; }
     }
 
-    static bool IsPd400x(ushort vid, ushort pid, string name, string path)
+    static bool LooksMaono(ushort vid, string name, string path)
     {
-        if (vid == PD400X_VID && pid == PD400X_PID) return true;
         string blob = ((name ?? "") + " " + (path ?? "")).ToLowerInvariant();
-        return blob.IndexOf("pd400") >= 0;
+        if (vid == 0x31B2 || vid == 0x352F) return true;
+        if (blob.IndexOf("vid_31b2") >= 0 || blob.IndexOf("vid_352f") >= 0) return true;
+        if (blob.IndexOf("maono") >= 0 || blob.IndexOf("pd400") >= 0) return true;
+        if (blob.IndexOf("pd200") >= 0 || blob.IndexOf("pd300") >= 0) return true;
+        return false;
     }
 
     static ushort ParseVid(string path)
@@ -161,6 +162,7 @@ internal static class Program
         catch { g = GUID_DEVINTERFACE_HID; }
         IntPtr set = SetupDiGetClassDevs(ref g, IntPtr.Zero, IntPtr.Zero, DIGCF_PRESENT | DIGCF_DEVICEINTERFACE);
         if (set == new IntPtr(-1)) return list;
+        int seen = 0;
         try
         {
             uint idx = 0;
@@ -195,6 +197,7 @@ internal static class Program
                     if (path.StartsWith("?\\")) path = "\\\\" + path;
                     else if (path.StartsWith("\\?\\") && !path.StartsWith("\\\\?\\")) path = "\\" + path;
                     else if (path.StartsWith("hid#")) path = "\\\\?\\" + path;
+                    seen++;
                     ushort vid = ParseVid(path);
                     ushort pid = ParsePid(path);
                     string prod = "";
@@ -208,7 +211,7 @@ internal static class Program
                         if (HidD_GetProductString(qh, ps, ps.Length)) prod = ReadZ(ps);
                         CloseHandle(qh);
                     }
-                    if (!IsPd400x(vid, pid, prod, path)) continue;
+                    if (!LooksMaono(vid, prod, path)) continue;
                     IntPtr h = OpenHid(path);
                     if (h == IntPtr.Zero) continue;
                     int inLen = 65, outLen = 65;
