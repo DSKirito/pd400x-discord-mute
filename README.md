@@ -2,15 +2,30 @@
 
 [English](#english) · [Русский](#русский)
 
-[Latest release](https://github.com/DSKirito/pd400x-discord-mute/releases/latest)
+**[Download release](https://github.com/DSKirito/pd400x-discord-mute/releases/latest)**
 
 ---
 
 ## English
 
-Press the mute pad on a Maono PD400X. Discord mutes with it.
+Make the physical mute button on the Maono PD400X mute and unmute Discord.
 
-Small Windows tool. No Maono Link, no Discord plugin, no virtual audio cable.
+```
+press mute on the mic     →     Discord muted
+press again               →     Discord live
+```
+
+No Maono Link. No Discord plugin. No virtual cable. Windows 10/11.
+
+### Download
+
+1. Open the [latest release](https://github.com/DSKirito/pd400x-discord-mute/releases/latest).
+2. Download the zip.
+3. Unpack it and run `START.bat`.
+4. In Discord set Mute to `Ctrl+Shift+Alt+M`, then close the Keybinds page.
+5. Close Maono Link.
+
+A short phone video of the button and the Discord mute icon helps more than this README. Drop it here as `demo.gif` if you record one.
 
 ### Why it exists
 
@@ -23,11 +38,10 @@ Maono Link can see that button. Discord cannot. This program reads vendor HID re
 1. In Discord open **Settings → Keybinds** and set Mute to `Ctrl + Shift + Alt + M`.
 2. Close the Keybinds page. While it is open, Discord captures the combo for recording instead of mute.
 3. Quit Maono Link, including the tray icon. It locks the HID interface.
-4. Download the [release zip](https://github.com/DSKirito/pd400x-discord-mute/releases/latest) or clone the repo.
-5. Run `START.bat`. It builds `HidWatch.exe` with the Windows `csc.exe` compiler and starts it in the system tray.
-6. Unmute Discord once by hand so both sides start in the same state, then tap the microphone.
+4. Run `START.bat`. It builds `HidWatch.exe` with the Windows `csc.exe` compiler and starts it in the system tray.
+5. Unmute Discord once by hand so both sides start in the same state, then tap the microphone.
 
-Right-click the tray icon → **Exit** to quit. There is no console window on the taskbar.
+Right-click the tray icon → **Выход** (Exit) to quit. There is no console window on the taskbar.
 
 ### Supported devices
 
@@ -36,6 +50,8 @@ Right-click the tray icon → **Exit** to quit. There is no console window on th
 | Maono PD400X over USB (`VID 352F`, `PID 0100`, HID `mi_03`) | Tested |
 | Other Maono USB mics on `VID 352F` / `31B2` (PD200X / PD300X family) | Same protocol, not tested here |
 | PD400X over XLR only, no USB | Not possible — no HID channel |
+
+XLR-only setups cannot use this tool. The mute pad never reaches the computer without USB HID. That is why a USB PD400X in Discord works here, and a PD400X into an XLR interface does not.
 
 ### FAQ
 
@@ -126,9 +142,24 @@ MIT. Personal project, not affiliated with Maono.
 
 ## Русский
 
-Нажал кнопку mute на Maono PD400X — в Discord тоже mute.
+Физическая кнопка mute на Maono PD400X глушит и размучивает Discord.
 
-Небольшая программа для Windows. Maono Link не нужен, плагин Discord не нужен, виртуальный кабель не нужен.
+```
+нажал mute на микрофоне     →     Discord замучен
+нажал ещё раз               →     Discord снова живой
+```
+
+Maono Link не нужен. Плагин Discord не нужен. Виртуальный кабель не нужен. Windows 10/11.
+
+### Скачать
+
+1. Открой [последний релиз](https://github.com/DSKirito/pd400x-discord-mute/releases/latest).
+2. Скачай zip.
+3. Распакуй и запусти `START.bat`.
+4. В Discord на Mute поставь `Ctrl+Shift+Alt+M` и закрой страницу горячих клавиш.
+5. Закрой Maono Link.
+
+Короткое видео с кнопки телефоном продаёт проект лучше README. Если снимешь — положи сюда как `demo.gif`.
 
 ### Зачем это
 
@@ -141,9 +172,8 @@ Maono Link эту кнопку видит. Discord — нет. Программ�
 1. В Discord: **Настройки → Горячие клавиши**. На Mute поставь `Ctrl + Shift + Alt + M`.
 2. Закрой страницу горячих клавиш. Пока она открыта, Discord ловит комбинацию для записи бинда, а не для mute.
 3. Закрой Maono Link, включая иконку в трее. Он занимает HID.
-4. Скачай [zip релиза](https://github.com/DSKirito/pd400x-discord-mute/releases/latest) или склонируй репозиторий.
-5. Запусти `START.bat`. Он соберёт `HidWatch.exe` штатным `csc.exe` и уберёт программу в трей.
-6. Один раз вручную размуть Discord, чтобы состояния совпали, потом нажми кнопку на микрофоне.
+4. Запусти `START.bat`. Он соберёт `HidWatch.exe` штатным `csc.exe` и уберёт программу в трей.
+5. Один раз вручную размуть Discord, чтобы состояния совпали, потом нажми кнопку на микрофоне.
 
 Правый клик по иконке в трее → **Выход**. Окна консоли в панели задач нет.
 
@@ -154,6 +184,8 @@ Maono Link эту кнопку видит. Discord — нет. Программ�
 | Maono PD400X по USB (`VID 352F`, `PID 0100`, HID `mi_03`) | Проверен |
 | Другие USB-микрофоны Maono на `VID 352F` / `31B2` (семейство PD200X / PD300X) | Тот же протокол, у нас не проверяли |
 | PD400X только по XLR, без USB | Нельзя — нет HID |
+
+Если микрофон сидит только в XLR-интерфейс, эта программа не поможет: без USB нет HID, кнопка до компьютера не доходит.
 
 ### Частые вопросы
 
@@ -167,20 +199,20 @@ Maono Link эту кнопку видит. Discord — нет. Программ�
 Программа переключает Discord, когда меняется железный mute. Запусти с размученным Discord и живым микрофоном, потом нажми кнопку.
 
 **В микшере Windows микрофон всё равно «включён».**  
-Так и должно быть. Аппаратный mute — это не mute устройства Windows. Именно из-за этого программа и существует.
+Так и должно быть. Аппаратный mute — это не mute устройства Windows.
 
 **Можно глушить Zoom или Teams?**  
 Да, если там тоже поставить `Ctrl+Shift+Alt+M`, или поменять клавиши в `HidWatch.cs`.
 
 **Где готовый EXE?**  
-`START.bat` собирает его у тебя на компьютере. Выкладывать неподписанный exe на GitHub обычно бессмысленно: SmartScreen его ругает.
+`START.bat` собирает его у тебя на компьютере. Неподписанный exe с GitHub SmartScreen обычно ругает.
 
 ### Известные проблемы
 
 - Maono Link и HidWatch не могут одновременно держать HID.
 - После запуска первое нажатие синхронно, только если mute в Discord уже совпадает с кнопкой.
 - Регистр `0x2034` — это уровень сигнала, не mute. Если реагировать на него, Discord мигает.
-- Нет сборки под macOS и Linux. Протокол — USB HID, хоткей — Win32 `SendInput`.
+- Нет сборки под macOS и Linux.
 
 ### HID-протокол
 
@@ -196,45 +228,11 @@ Maono Link эту кнопку видит. Discord — нет. Программ�
 | 8–9 | Значение, little-endian |
 | 10–11 | Сумма `(-sum(bytes[1..end])) & 0xFFFF` |
 
-Регистр mute:
-
-```
-cmd  0x2022
-val  0 = микрофон живой
-val  1 = mute
-```
-
-Запрос:
-
-```
-4B C4 09 00 00 04 22 20 CS CS ...
-```
-
-Ответ / событие:
-
-```
-4B C4 0B 00 00 04 22 20 00 00 ...   живой
-4B C4 0B 00 00 04 22 20 01 00 ...   mute
-```
-
-Пока микрофон живой, с устройства идёт регистр `0x2034` (уровень, числа около 1400–1700). Это не mute. Смотри только `cmd == 0x2022` и значение 0 или 1.
+Регистр mute: `0x2022`, `0` = живой, `1` = mute. Регистр `0x2034` — уровень, не mute.
 
 ### Как устроена программа
 
-[`HidWatch.cs`](HidWatch.cs) — один файл под .NET Framework 4.x, без NuGet.
-
-1. Перечисляет HID через SetupAPI, берёт `VID 352F` / `31B2` или имя Maono / PD400.
-2. Открывает устройство с `GENERIC_READ | GENERIC_WRITE` и `FILE_FLAG_OVERLAPPED`.
-3. Слушает interrupt IN (около 15 мс). Иногда шлёт запрос `0x2022`.
-4. На смене 0 ↔ 1 отправляет `Ctrl+Shift+Alt+M` через `SendInput`.
-5. Работает как приложение в трее (`winexe`), без окна консоли.
-
-### Файлы
-
-| Файл | Зачем |
-|---|---|
-| `START.bat` | Гасит старый процесс, собирает, запускает в трей |
-| `HidWatch.cs` | Чтение HID и хоткей Discord |
+[`HidWatch.cs`](HidWatch.cs) — один файл под .NET Framework 4.x, без NuGet. Слушает HID, на смене mute шлёт `Ctrl+Shift+Alt+M`, сидит в трее.
 
 ### Лицензия
 
